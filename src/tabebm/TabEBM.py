@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy
 import torch
+from category_encoders import LeaveOneOutEncoder
+from sklearn.preprocessing import StandardScaler
 from tabpfn import TabPFNClassifier
 
 
@@ -39,21 +41,22 @@ class TabEBM:
         if tabpfn is not None:
             self.tabpfn = tabpfn
         else:
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            common_params = {
+                'device': device,
+                'N_ensemble_configurations': 3,
+                'only_inference': True,
+                'no_preprocess_mode': True
+            }
             if plotting is False:
                 self.tabpfn = TabPFNClassifier(
-                    device="cuda",
-                    N_ensemble_configurations=3,
-                    only_inference=True,
                     no_grad=False,
-                    no_preprocess_mode=True,
+                    **common_params
                 )
             else:
                 self.tabpfn = TabPFNClassifier(
-                    device="cpu",
-                    N_ensemble_configurations=3,
-                    only_inference=True,
                     no_grad=True,
-                    no_preprocess_mode=True,
+                    **common_params
                 )
 
     @staticmethod
@@ -126,7 +129,7 @@ class TabEBM:
     def generate(
         self,
         X,
-        y,  # The data must have been processed using TabEBM.add_surrogate_negative_samples()
+        y,
         num_samples,  # Number of samples to generate (per class)
         starting_point_noise_std=0.01,  # SGLD noise standard deviation to initialise the starting points
         sgld_step_size=0.1,  # SGLD step size
